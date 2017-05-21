@@ -249,7 +249,7 @@ class MinimaxPlayer(IsolationPlayer):
         # A search method for the max node, where it takes the max of all submodes
         # Takes a game board and the current depth
         # Returns the heuristic value, which defaults to -inf
-        if depth < 0:
+        if depth <= 0:
             return self.score(game, self)
 
         if self.time_left() < self.TIMER_THRESHOLD:
@@ -267,7 +267,7 @@ class MinimaxPlayer(IsolationPlayer):
         return v
 
     def min_value(self, game, depth):
-        if depth < 0:
+        if depth <= 0:
             return self.score(game, self)
 
         if self.time_left() < self.TIMER_THRESHOLD:
