@@ -321,8 +321,20 @@ class AlphaBetaPlayer(IsolationPlayer):
         """
         self.time_left = time_left
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        # Initialize the best move so that this function returns something
+        # in case the search fails due to timeout
+        best_move = (-1, -1)
+
+        try:
+            while self.time_left() > self.TIMER_THRESHOLD: # ?
+                best_move = self.alphabeta(game, self.search_depth)
+
+        except SearchTimeout:
+            return best_move  # Handle any actions required after timeout as needed
+
+        # Return the best move from the last completed search iteration
+        return best_move
+
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf")):
         """Implement depth-limited minimax search with alpha-beta pruning as
@@ -372,5 +384,93 @@ class AlphaBetaPlayer(IsolationPlayer):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        #v = max_value(game, depth, alpha, beta)
+        #return lookup[v]
+
+        #return (-1, -1)
+
+        #(action, v) = self.max_value(game, depth, alpha, beta)
+        #return action
+
+        actions = game.get_legal_moves()
+        best_action = (-1, -1)
+        best_score = -float("inf")
+        for action in actions:
+            score = self.min_value(game.forecast_move(action), depth-1, best_score, beta)
+            if score > best_score:
+                best_action = action
+                best_score = score
+
+        return best_action
+
+        """
+        # For each legal moves, forecast the board state and apply min_value for each
+        res = [(a, self.max_value(game.forecast_move(a), depth, alpha, beta)) for a in actions]
+        max_obj = max(res, key=lambda x: x[1])  # Find max based on the max value
+        action = max_obj[0]
+
+        return action
+        """
+
+    def max_value(self, game, depth, alpha, beta):
+        # A search method for the max node, where it takes the max of all submodes
+        # Takes a game board and the current depth
+        # Returns the heuristic value, which defaults to -inf
+        if depth <= 0:
+            return self.score(game, self)
+
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        v = -float("inf")
+
+        actions = game.get_legal_moves()
+
+        '''
+        if not actions:
+            # No legal moves
+            return self.score(game, self)
+        '''
+
+        # If there're no legal moves, then the following loop will fall through and return -inf directly
+        for action in actions:
+            # Find the forcasted resulting state when action is applied to the given game state
+            result = game.forecast_move(action)
+            v = max(v, self.min_value(result, depth - 1, alpha, beta))
+
+            if v >= beta:
+            #if beta <= alpha:
+                return v
+            alpha = max(alpha, v)
+        return v
+
+    def min_value(self, game, depth, alpha, beta):
+        # A search method for the max node, where it takes the max of all submodes
+        # Takes a game board and the current depth
+        # Returns the heuristic value, which defaults to -inf
+        if depth <= 0:
+            return self.score(game, self)
+
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        v = float("inf")
+
+        actions = game.get_legal_moves()
+
+        """
+        if not actions:
+            # No legal moves
+            return self.score(game, self)
+        """
+
+        # If there're no legal moves, then the following loop will fall through and return -inf directly
+        for action in actions:
+            # Find the forcasted resulting state when action is applied to the given game state
+            result = game.forecast_move(action)
+            v = min(v, self.max_value(result, depth - 1, alpha, beta))
+
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+        return v
