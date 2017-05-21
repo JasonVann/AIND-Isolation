@@ -34,9 +34,12 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
 
+    # Use the difference of legal moves of the two players
+    my_legal_moves = game.get_legal_moves(player)
+    opp = game.get_opponent(player)
+    opp_legal_moves = game.get_legal_moves(opp)
+    return float(len(my_legal_moves) - len(opp_legal_moves))
 
 def custom_score_2(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -60,9 +63,9 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
-
+    # Use the number of legal moves of the current player
+    my_legal_moves = game.get_legal_moves(player)
+    return float(len(my_legal_moves))
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -86,8 +89,12 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    # Use the difference of legal moves of the two players
+    # We want to penalize the agent if the opponent has too many legal moves, so we use a multiplier of 1.5
+    my_legal_moves = game.get_legal_moves(player)
+    opp = game.get_opponent(player)
+    opp_legal_moves = game.get_legal_moves(opp)
+    return float(len(my_legal_moves) - 1.5* len(opp_legal_moves))
 
 
 class IsolationPlayer:
@@ -326,8 +333,11 @@ class AlphaBetaPlayer(IsolationPlayer):
         best_move = (-1, -1)
 
         try:
+            # Iterative-Deepening: increase the search depth by 1 every iteration
+            depth = self.search_depth
             while self.time_left() > self.TIMER_THRESHOLD: # ?
-                best_move = self.alphabeta(game, self.search_depth)
+                best_move = self.alphabeta(game, depth)
+                depth += 1
 
         except SearchTimeout:
             return best_move  # Handle any actions required after timeout as needed
@@ -384,18 +394,11 @@ class AlphaBetaPlayer(IsolationPlayer):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        #v = max_value(game, depth, alpha, beta)
-        #return lookup[v]
-
-        #return (-1, -1)
-
-        #(action, v) = self.max_value(game, depth, alpha, beta)
-        #return action
-
         actions = game.get_legal_moves()
         best_action = (-1, -1)
         best_score = -float("inf")
         for action in actions:
+            # Use the best_score instead of "-inf" so that later iterations of the loop will take advantage of the improved alpha
             score = self.min_value(game.forecast_move(action), depth-1, best_score, beta)
             if score > best_score:
                 best_action = action
@@ -426,12 +429,6 @@ class AlphaBetaPlayer(IsolationPlayer):
 
         actions = game.get_legal_moves()
 
-        '''
-        if not actions:
-            # No legal moves
-            return self.score(game, self)
-        '''
-
         # If there're no legal moves, then the following loop will fall through and return -inf directly
         for action in actions:
             # Find the forcasted resulting state when action is applied to the given game state
@@ -439,7 +436,6 @@ class AlphaBetaPlayer(IsolationPlayer):
             v = max(v, self.min_value(result, depth - 1, alpha, beta))
 
             if v >= beta:
-            #if beta <= alpha:
                 return v
             alpha = max(alpha, v)
         return v
@@ -457,12 +453,6 @@ class AlphaBetaPlayer(IsolationPlayer):
         v = float("inf")
 
         actions = game.get_legal_moves()
-
-        """
-        if not actions:
-            # No legal moves
-            return self.score(game, self)
-        """
 
         # If there're no legal moves, then the following loop will fall through and return -inf directly
         for action in actions:
