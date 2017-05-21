@@ -212,9 +212,76 @@ class MinimaxPlayer(IsolationPlayer):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        actions = game.get_legal_moves()
 
+        # For each legal moves, forecast the board state and apply min_value for each
+        res = [(a, self.min_value(game.forecast_move(a), depth-1)) for a in actions]
+        max_obj = max(res, key=lambda x: x[1])  # Find max based on the max value
+        action = max_obj[0]
+
+        return action
+
+        #a, v = [(a, self.min_value(game.forecast_move(a), depth - 1)) for a in actions][1]
+        #return max(a, key = v)
+
+
+    """
+    def terminal_test(self, game: object, depth: object) -> object:
+        # True if the search has reached the max depth, or if a winner has been found
+
+        if depth == self.search_depth:
+            return True
+
+        if game.is_winner(player):
+            return True
+
+        return False
+
+    def result(self, game, action):
+        # Returns the forcasted resulting state when action is applied to the given game state
+        # game: a game state for the board
+        # action: a (int, int) for where to move
+
+        return game.forecast_move(action)
+    """
+
+    def max_value(self, game, depth):
+        # A search method for the max node, where it takes the max of all submodes
+        # Takes a game board and the current depth
+        # Returns the heuristic value, which defaults to -inf
+        if depth < 0:
+            return self.score(game, self)
+
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        v = - float("inf")
+
+        actions = game.get_legal_moves()
+
+        # If there're no legal moves, then the following loop will fall through and return -inf directly
+        for action in actions:
+            # Find the forcasted resulting state when action is applied to the given game state
+            result = game.forecast_move(action)
+            v = max(v, self.min_value(result, depth - 1))
+        return v
+
+    def min_value(self, game, depth):
+        if depth < 0:
+            return self.score(game, self)
+
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        v = float("inf")
+
+        actions = game.get_legal_moves()
+        # If there're no legal moves, then the following loop will fall through and return -inf directly
+        for action in actions:
+            # Find the forcasted resulting state when action is applied to the given game state
+            result = game.forecast_move(action)
+            v = min(v, self.max_value(result, depth - 1))
+        return v
 
 class AlphaBetaPlayer(IsolationPlayer):
     """Game-playing agent that chooses a move using iterative deepening minimax
