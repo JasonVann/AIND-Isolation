@@ -36,10 +36,16 @@ def custom_score(game, player):
     """
 
     # Use the difference of legal moves of the two players
+    # We want to penalize the agent if the opponent has too many legal moves, so we use a multiplier of 2
+
     my_legal_moves = game.get_legal_moves(player)
     opp = game.get_opponent(player)
     opp_legal_moves = game.get_legal_moves(opp)
-    return float(len(my_legal_moves) - len(opp_legal_moves))
+    #return float(len(my_legal_moves) - 2 * len(opp_legal_moves)) + float(len(my_legal_moves) * (10 / (1+len(opp_legal_moves)))) # -2%
+
+    return float(len(my_legal_moves) - 1.5 * len(opp_legal_moves)) + float(
+        len(my_legal_moves) * (10 / (1.5 + len(opp_legal_moves))))  # + 7%
+
 
 def custom_score_2(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -63,9 +69,15 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # Use the number of legal moves of the current player
+    # If the opponent has too many legal moves, we don't want to penalize the agent too much, so we use a multiplier of 0.5
+
     my_legal_moves = game.get_legal_moves(player)
-    return float(len(my_legal_moves))
+    opp = game.get_opponent(player)
+    opp_legal_moves = game.get_legal_moves(opp)
+    #return float(len(my_legal_moves) * (3 / (1+len(opp_legal_moves)))) #-3%
+
+    #return float(len(my_legal_moves) - 0.5 * len(opp_legal_moves))  # +3-5%
+    return float(len(my_legal_moves) - 2.5 * len(opp_legal_moves))  # +3-5%
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -89,12 +101,19 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # Use the difference of legal moves of the two players
-    # We want to penalize the agent if the opponent has too many legal moves, so we use a multiplier of 1.5
+    # Try multiplying the two number of moves.
+    # Penalize the agent if opponent has too many moves
+
     my_legal_moves = game.get_legal_moves(player)
     opp = game.get_opponent(player)
     opp_legal_moves = game.get_legal_moves(opp)
-    return float(len(my_legal_moves) - 1.5* len(opp_legal_moves))
+    #return float(len(my_legal_moves) * (10 - len(opp_legal_moves)))
+    #return float(len(my_legal_moves) * (len(my_legal_moves) - len(opp_legal_moves))) # 56.7%
+
+    #return float(len(my_legal_moves) - 1 * len(opp_legal_moves)) + float(len(my_legal_moves) * (10 / (1 + len(opp_legal_moves))))  # + 1 - 2%
+    #return float(len(my_legal_moves) * (1.5 / (1 + len(opp_legal_moves))))  # +3%
+
+    return float(len(my_legal_moves) * (2 / (1 + len(opp_legal_moves))))  # +4%
 
 
 class IsolationPlayer:
@@ -221,41 +240,30 @@ class MinimaxPlayer(IsolationPlayer):
 
         actions = game.get_legal_moves()
 
-        # For each legal moves, forecast the board state and apply min_value for each
+        """
         res = [(a, self.min_value(game.forecast_move(a), depth-1)) for a in actions]
         max_obj = max(res, key=lambda x: x[1])  # Find max based on the max value
         action = max_obj[0]
 
         return action
+        """
 
-        #a, v = [(a, self.min_value(game.forecast_move(a), depth - 1)) for a in actions][1]
-        #return max(a, key = v)
+        best_action = (-1, -1)
+        best_score = -float("inf")
+        for action in actions:
+            # For each legal moves, forecast the board state and apply min_value for each
+            score = self.min_value(game.forecast_move(action), depth - 1)
+            if score > best_score:
+                best_action = action
+                best_score = score
 
-
-    """
-    def terminal_test(self, game: object, depth: object) -> object:
-        # True if the search has reached the max depth, or if a winner has been found
-
-        if depth == self.search_depth:
-            return True
-
-        if game.is_winner(player):
-            return True
-
-        return False
-
-    def result(self, game, action):
-        # Returns the forcasted resulting state when action is applied to the given game state
-        # game: a game state for the board
-        # action: a (int, int) for where to move
-
-        return game.forecast_move(action)
-    """
+        return best_action
 
     def max_value(self, game, depth):
-        # A search method for the max node, where it takes the max of all submodes
+        # A search method for the max node, where it takes the max of all subnodes
         # Takes a game board and the current depth
         # Returns the heuristic value, which defaults to -inf
+
         if depth <= 0:
             return self.score(game, self)
 
@@ -274,6 +282,10 @@ class MinimaxPlayer(IsolationPlayer):
         return v
 
     def min_value(self, game, depth):
+        # A search method for the min node, where it takes the min of all subnodes
+        # Takes a game board and the current depth
+        # Returns the heuristic value, which defaults to inf
+
         if depth <= 0:
             return self.score(game, self)
 
@@ -335,7 +347,7 @@ class AlphaBetaPlayer(IsolationPlayer):
         try:
             # Iterative-Deepening: increase the search depth by 1 every iteration
             depth = self.search_depth
-            while self.time_left() > self.TIMER_THRESHOLD: # ?
+            while self.time_left() > self.TIMER_THRESHOLD:
                 best_move = self.alphabeta(game, depth)
                 depth += 1
 
@@ -398,6 +410,7 @@ class AlphaBetaPlayer(IsolationPlayer):
         best_action = (-1, -1)
         best_score = -float("inf")
         for action in actions:
+            # For each legal action, we forecast the new state and try alpha-beta pruning
             # Use the best_score instead of "-inf" so that later iterations of the loop will take advantage of the improved alpha
             score = self.min_value(game.forecast_move(action), depth-1, best_score, beta)
             if score > best_score:
@@ -406,17 +419,8 @@ class AlphaBetaPlayer(IsolationPlayer):
 
         return best_action
 
-        """
-        # For each legal moves, forecast the board state and apply min_value for each
-        res = [(a, self.max_value(game.forecast_move(a), depth, alpha, beta)) for a in actions]
-        max_obj = max(res, key=lambda x: x[1])  # Find max based on the max value
-        action = max_obj[0]
-
-        return action
-        """
-
     def max_value(self, game, depth, alpha, beta):
-        # A search method for the max node, where it takes the max of all submodes
+        # A search method for the max node, where it takes the max of all subnodes
         # Takes a game board and the current depth
         # Returns the heuristic value, which defaults to -inf
         if depth <= 0:
@@ -441,9 +445,9 @@ class AlphaBetaPlayer(IsolationPlayer):
         return v
 
     def min_value(self, game, depth, alpha, beta):
-        # A search method for the max node, where it takes the max of all submodes
+        # A search method for the max node, where it takes the min of all subnodes
         # Takes a game board and the current depth
-        # Returns the heuristic value, which defaults to -inf
+        # Returns the heuristic value, which defaults to inf
         if depth <= 0:
             return self.score(game, self)
 
