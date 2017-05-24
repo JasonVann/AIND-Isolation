@@ -35,14 +35,13 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
 
-    # Use the difference of legal moves of the two players
-    # We want to penalize the agent if the opponent has too many legal moves, so we use a multiplier of 2
-
     my_legal_moves = game.get_legal_moves(player)
     opp = game.get_opponent(player)
     opp_legal_moves = game.get_legal_moves(opp)
-    #return float(len(my_legal_moves) - 2 * len(opp_legal_moves)) + float(len(my_legal_moves) * (10 / (1+len(opp_legal_moves)))) # -2%
+    # return float(len(my_legal_moves) - 2 * len(opp_legal_moves))
+    #  + float(len(my_legal_moves) * (10 / (1+len(opp_legal_moves)))) # -2%
 
+    # A combination from heuristic 2 and 3
     return float(len(my_legal_moves) - 1.5 * len(opp_legal_moves)) + float(
         len(my_legal_moves) * (10 / (1.5 + len(opp_legal_moves))))  # + 7%
 
@@ -69,15 +68,16 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # If the opponent has too many legal moves, we don't want to penalize the agent too much, so we use a multiplier of 0.5
+    # If the opponent has too many legal moves, we want to penalize the agent with a multiplier of a
 
     my_legal_moves = game.get_legal_moves(player)
     opp = game.get_opponent(player)
     opp_legal_moves = game.get_legal_moves(opp)
-    #return float(len(my_legal_moves) * (3 / (1+len(opp_legal_moves)))) #-3%
+    # return float(len(my_legal_moves) * (3 / (1+len(opp_legal_moves)))) #-3%
+    # return float(len(my_legal_moves) - 0.5 * len(opp_legal_moves))  # +3-5%
 
-    #return float(len(my_legal_moves) - 0.5 * len(opp_legal_moves))  # +3-5%
     return float(len(my_legal_moves) - 2.5 * len(opp_legal_moves))  # +3-5%
+
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -101,17 +101,18 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # Try multiplying the two number of moves.
-    # Penalize the agent if opponent has too many moves
+    # Try divide our number of legal moves by opponent's
+    # Add 1 in the denominator to avoid division by 1 error
 
     my_legal_moves = game.get_legal_moves(player)
     opp = game.get_opponent(player)
     opp_legal_moves = game.get_legal_moves(opp)
-    #return float(len(my_legal_moves) * (10 - len(opp_legal_moves)))
-    #return float(len(my_legal_moves) * (len(my_legal_moves) - len(opp_legal_moves))) # 56.7%
 
-    #return float(len(my_legal_moves) - 1 * len(opp_legal_moves)) + float(len(my_legal_moves) * (10 / (1 + len(opp_legal_moves))))  # + 1 - 2%
-    #return float(len(my_legal_moves) * (1.5 / (1 + len(opp_legal_moves))))  # +3%
+    # return float(len(my_legal_moves) * (10 - len(opp_legal_moves)))
+    # return float(len(my_legal_moves) * (len(my_legal_moves) - len(opp_legal_moves))) # 56.7%
+    # return float(len(my_legal_moves) - 1 * len(opp_legal_moves))
+    # + float(len(my_legal_moves) * (10 / (1 + len(opp_legal_moves))))  # + 1 - 2%
+    # return float(len(my_legal_moves) * (1.5 / (1 + len(opp_legal_moves))))  # +3%
 
     return float(len(my_legal_moves) * (2 / (1 + len(opp_legal_moves))))  # +4%
 
@@ -239,68 +240,58 @@ class MinimaxPlayer(IsolationPlayer):
             raise SearchTimeout()
 
         actions = game.get_legal_moves()
-
-        """
-        res = [(a, self.min_value(game.forecast_move(a), depth-1)) for a in actions]
-        max_obj = max(res, key=lambda x: x[1])  # Find max based on the max value
-        action = max_obj[0]
-
+        res = [(a, self.max_min(game.forecast_move(a), depth-1, False)) for a in actions]
+        if not res:
+            # []
+            action = (-1, -1)
+        else:
+            max_obj = max(res, key=lambda x: x[1])  # Find max based on the max value
+            action = max_obj[0]
         return action
+
+        # Alternatively, use for loop instead of the above list comprehension
+        # best_action = (-1, -1)
+        # best_score = -float("inf")
+        # for action in actions:
+        #     # For each legal moves, forecast the board state and apply min_value for each
+        #     score = self.min_value(game.forecast_move(action), depth - 1)
+        #     if score > best_score:
+        #         best_action = action
+        #         best_score = score
+        #
+        # return best_action
+
+    def max_min(self, game, depth, is_max = True):
+        """
+        A search method for the max or min layer, depending on the flag is_max
+        If is_max is True, it assumes it's on the max layer, and takes the max of its children
+        If False, it assumes it's on the min layer, and takes the min of its children
+        Returns the best score
         """
 
-        best_action = (-1, -1)
-        best_score = -float("inf")
-        for action in actions:
-            # For each legal moves, forecast the board state and apply min_value for each
-            score = self.min_value(game.forecast_move(action), depth - 1)
-            if score > best_score:
-                best_action = action
-                best_score = score
-
-        return best_action
-
-    def max_value(self, game, depth):
-        # A search method for the max node, where it takes the max of all subnodes
-        # Takes a game board and the current depth
-        # Returns the heuristic value, which defaults to -inf
-
         if depth <= 0:
             return self.score(game, self)
 
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        v = - float("inf")
+        if is_max:
+            value = - float("inf")
+        else:
+            value = float("inf")
 
         actions = game.get_legal_moves()
 
-        # If there're no legal moves, then the following loop will fall through and return -inf directly
+        # If there're no legal moves, then the following loop will fall through
+        # and return -inf directly
         for action in actions:
             # Find the forcasted resulting state when action is applied to the given game state
             result = game.forecast_move(action)
-            v = max(v, self.min_value(result, depth - 1))
-        return v
-
-    def min_value(self, game, depth):
-        # A search method for the min node, where it takes the min of all subnodes
-        # Takes a game board and the current depth
-        # Returns the heuristic value, which defaults to inf
-
-        if depth <= 0:
-            return self.score(game, self)
-
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise SearchTimeout()
-
-        v = float("inf")
-
-        actions = game.get_legal_moves()
-        # If there're no legal moves, then the following loop will fall through and return -inf directly
-        for action in actions:
-            # Find the forcasted resulting state when action is applied to the given game state
-            result = game.forecast_move(action)
-            v = min(v, self.max_value(result, depth - 1))
-        return v
+            if is_max:
+                value = max(value, self.max_min(result, depth - 1, False))
+            else:
+                value = min(value, self.max_min(result, depth - 1, True))
+        return value
 
 class AlphaBetaPlayer(IsolationPlayer):
     """Game-playing agent that chooses a move using iterative deepening minimax
@@ -402,7 +393,6 @@ class AlphaBetaPlayer(IsolationPlayer):
                 each helper function or else your agent will timeout during
                 testing.
         """
-        #return self.max_min(game, depth)
 
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
@@ -412,7 +402,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         best_score = -float("inf")
         for action in actions:
             # For each legal action, we forecast the new state and try alpha-beta pruning
-            # Use the best_score instead of "-inf" so that later iterations of the loop will take advantage of the improved alpha
+            # Use the best_score instead of "-inf" so that later iterations of the loop
+            # will take advantage of the improved alpha
             score = self.max_min(game.forecast_move(action), depth-1, best_score, beta, False)
             if score > best_score:
                 best_action = action
@@ -420,12 +411,14 @@ class AlphaBetaPlayer(IsolationPlayer):
 
         return best_action
 
-    def max_min(self, game, depth, alpha=float("-inf"), beta=float("inf"), is_max = True):
-        # An alpha-beta pruning method for the max or min layer, depending on the flag is_max
-        # If is_max is True, it assumes it's on the max layer, and takes the max of alpha and children
-        # If False, it assumes it's on the min layer, and takes the min of the beta and children
-        # Either case, prune the tree if alpha >= beta
-        # Returns the best score
+    def max_min(self, game, depth, alpha=float("-inf"), beta=float("inf"), is_max=True):
+        """
+        An alpha-beta pruning method for the max or min layer, depending on the flag is_max
+        If is_max is True, it assumes it's on the max layer, and takes the max of alpha and children
+        If False, it assumes it's on the min layer, and takes the min of the beta and children
+        Either case, prune the tree if alpha >= beta
+        Returns the best score
+        """
 
         if depth <= 0:
             return self.score(game, self)
@@ -436,9 +429,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         actions = game.get_legal_moves()
 
         if is_max:
-            # If there're no legal moves, then the following loop will fall through and return -inf directly
             for action in actions:
-                # Find the forcasted resulting state when action is applied to the given game state
+                # Find the forecast resulting state when action is applied to the given game state
                 result = game.forecast_move(action)
 
                 alpha = max(alpha, self.max_min(result, depth - 1, alpha, beta, False))
@@ -456,53 +448,3 @@ class AlphaBetaPlayer(IsolationPlayer):
                     break
 
             return beta
-
-    def max_value(self, game, depth, alpha, beta):
-        # A search method for the max node, where it takes the max of all subnodes
-        # Takes a game board and the current depth
-        # Returns the heuristic value, which defaults to -inf
-        if depth <= 0:
-            return self.score(game, self)
-
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise SearchTimeout()
-
-        v = -float("inf")
-
-        actions = game.get_legal_moves()
-
-        # If there're no legal moves, then the following loop will fall through and return -inf directly
-        for action in actions:
-            # Find the forcasted resulting state when action is applied to the given game state
-            result = game.forecast_move(action)
-            v = max(v, self.min_value(result, depth - 1, alpha, beta))
-
-            if v >= beta:
-                return v
-            alpha = max(alpha, v)
-        return v
-
-    def min_value(self, game, depth, alpha, beta):
-        # A search method for the max node, where it takes the min of all subnodes
-        # Takes a game board and the current depth
-        # Returns the heuristic value, which defaults to inf
-        if depth <= 0:
-            return self.score(game, self)
-
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise SearchTimeout()
-
-        v = float("inf")
-
-        actions = game.get_legal_moves()
-
-        # If there're no legal moves, then the following loop will fall through and return -inf directly
-        for action in actions:
-            # Find the forcasted resulting state when action is applied to the given game state
-            result = game.forecast_move(action)
-            v = min(v, self.max_value(result, depth - 1, alpha, beta))
-
-            if v <= alpha:
-                return v
-            beta = min(beta, v)
-        return v
