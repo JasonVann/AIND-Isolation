@@ -357,7 +357,6 @@ class AlphaBetaPlayer(IsolationPlayer):
         # Return the best move from the last completed search iteration
         return best_move
 
-
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf")):
         """Implement depth-limited minimax search with alpha-beta pruning as
         described in the lectures.
@@ -403,6 +402,8 @@ class AlphaBetaPlayer(IsolationPlayer):
                 each helper function or else your agent will timeout during
                 testing.
         """
+        #return self.max_min(game, depth)
+
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
@@ -412,12 +413,49 @@ class AlphaBetaPlayer(IsolationPlayer):
         for action in actions:
             # For each legal action, we forecast the new state and try alpha-beta pruning
             # Use the best_score instead of "-inf" so that later iterations of the loop will take advantage of the improved alpha
-            score = self.min_value(game.forecast_move(action), depth-1, best_score, beta)
+            score = self.max_min(game.forecast_move(action), depth-1, best_score, beta, False)
             if score > best_score:
                 best_action = action
                 best_score = score
 
         return best_action
+
+    def max_min(self, game, depth, alpha=float("-inf"), beta=float("inf"), is_max = True):
+        # An alpha-beta pruning method for the max or min layer, depending on the flag is_max
+        # If is_max is True, it assumes it's on the max layer, and takes the max of alpha and children
+        # If False, it assumes it's on the min layer, and takes the min of the beta and children
+        # Either case, prune the tree if alpha >= beta
+        # Returns the best score
+
+        if depth <= 0:
+            return self.score(game, self)
+
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
+
+        actions = game.get_legal_moves()
+
+        if is_max:
+            # If there're no legal moves, then the following loop will fall through and return -inf directly
+            for action in actions:
+                # Find the forcasted resulting state when action is applied to the given game state
+                result = game.forecast_move(action)
+
+                alpha = max(alpha, self.max_min(result, depth - 1, alpha, beta, False))
+                if alpha >= beta:
+                    break
+
+            return alpha
+
+        if not is_max:
+            for action in actions:
+                result = game.forecast_move(action)
+                beta = min(beta, self.max_min(result, depth - 1, alpha, beta, True))
+
+                if beta <= alpha:
+                    break
+
+            return beta
 
     def max_value(self, game, depth, alpha, beta):
         # A search method for the max node, where it takes the max of all subnodes
