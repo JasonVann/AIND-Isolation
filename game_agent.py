@@ -264,9 +264,21 @@ class MinimaxPlayer(IsolationPlayer):
     def max_min(self, game, depth, is_max = True):
         """
         A search method for the max or min layer, depending on the flag is_max
-        If is_max is True, it assumes it's on the max layer, and takes the max of its children
-        If False, it assumes it's on the min layer, and takes the min of its children
-        Returns the best score
+        Args:
+            game : isolation.Board
+                An instance of the Isolation game `Board` class representing the
+                current game state
+            depth : int
+                Depth is an integer representing the maximum number of plies to
+                search in the game tree before aborting
+            is_max:
+                If is_max is True, it's the max layer, and takes the max of its children
+                If False, it's on the min layer, and takes the min of its children
+                Either case, prune the tree if alpha >= beta
+        Returns:
+            the best score
+        Raises:
+            SearchTime()
         """
 
         if depth <= 0:
@@ -292,6 +304,7 @@ class MinimaxPlayer(IsolationPlayer):
             else:
                 value = min(value, self.max_min(result, depth - 1, True))
         return value
+
 
 class AlphaBetaPlayer(IsolationPlayer):
     """Game-playing agent that chooses a move using iterative deepening minimax
@@ -414,10 +427,25 @@ class AlphaBetaPlayer(IsolationPlayer):
     def max_min(self, game, depth, alpha=float("-inf"), beta=float("inf"), is_max=True):
         """
         An alpha-beta pruning method for the max or min layer, depending on the flag is_max
-        If is_max is True, it assumes it's on the max layer, and takes the max of alpha and children
-        If False, it assumes it's on the min layer, and takes the min of the beta and children
-        Either case, prune the tree if alpha >= beta
-        Returns the best score
+        Args:
+            game : isolation.Board
+                An instance of the Isolation game `Board` class representing the
+                current game state
+            depth : int
+                Depth is an integer representing the maximum number of plies to
+                search in the game tree before aborting
+            alpha : float
+                Alpha limits the lower bound of search on minimizing layers
+            beta : float
+                Beta limits the upper bound of search on maximizing layers
+            is_max:
+                If True, it's on the max layer, and takes the max of alpha and children
+                If False, it's on the min layer, and takes the min of the beta and children
+                Either case, prune the tree if alpha >= beta
+        Returns:
+            the best score
+        Raises:
+            SearchTime()
         """
 
         if depth <= 0:
